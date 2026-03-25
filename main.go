@@ -2,28 +2,48 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 
-	"github.com/era0006/game-shop-backend/models"
-	"github.com/era0006/game-shop-backend/storage"
+	"github.com/era0006/game-shop-backend/handlers"
 )
 
 func main() {
-	fmt.Println("Game Shop Backend starting...")
+	fmt.Println("🎮 Game Shop API starting on http://localhost:8080")
 
-	store := storage.NewStore()
+	http.HandleFunc("/games", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetGames(w, r)
+		case http.MethodPost:
+			handlers.CreateGame(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
-	games := []*models.Game{
-		models.NewGame("The Witcher 3", "RPG", "PC", 39.99),
-		models.NewGame("Cyberpunk 2077", "RPG", "PC", 49.99),
-		models.NewGame("Mario Kart", "Racing", "Nintendo", 44.99),
-	}
+	http.HandleFunc("/games/", handlers.GetGameByID)
 
-	for _, g := range games {
-		store.Add(g)
-	}
+	http.HandleFunc("/developers", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetDevelopers(w, r)
+		case http.MethodPost:
+			handlers.CreateDeveloper(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
-	fmt.Println("\nGames in store:")
-	for _, g := range store.GetAll() {
-		fmt.Printf("- %s | $%.2f | %s\n", g.Title, g.Price, g.Genre)
-	}
+	http.HandleFunc("/genres", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handlers.GetGenres(w, r)
+		case http.MethodPost:
+			handlers.CreateGenre(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.ListenAndServe(":8080", nil)
 }

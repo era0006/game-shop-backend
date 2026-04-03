@@ -1,30 +1,33 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/era0006/game-shop-backend/models"
+	"github.com/gin-gonic/gin"
 )
 
-var developers = []models.Developer{
-	{ID: 1, Name: "CD Projekt Red"},
-	{ID: 2, Name: "Nintendo"},
-}
-var nextDevID = 3
-
-func GetDevelopers(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(developers)
+func GetDevelopers(c *gin.Context) {
+	var developers []models.Developer
+	db.Find(&developers)
+	c.JSON(http.StatusOK, developers)
 }
 
-func CreateDeveloper(w http.ResponseWriter, r *http.Request) {
+func CreateDeveloper(c *gin.Context) {
 	var dev models.Developer
-	json.NewDecoder(r.Body).Decode(&dev)
-	dev.ID = nextDevID
-	nextDevID++
-	developers = append(developers, dev)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dev)
+	if err := c.ShouldBindJSON(&dev); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	if dev.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+
+	result := db.Create(&dev)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create developer"})
+		return
+	}
+	c.JSON(http.StatusCreated, dev)
 }

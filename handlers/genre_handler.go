@@ -1,30 +1,33 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/era0006/game-shop-backend/models"
+	"github.com/gin-gonic/gin"
 )
 
-var genres = []models.Genre{
-	{ID: 1, Name: "RPG"},
-	{ID: 2, Name: "Racing"},
-}
-var nextGenreID = 3
-
-func GetGenres(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(genres)
+func GetGenres(c *gin.Context) {
+	var genres []models.Genre
+	db.Find(&genres)
+	c.JSON(http.StatusOK, genres)
 }
 
-func CreateGenre(w http.ResponseWriter, r *http.Request) {
+func CreateGenre(c *gin.Context) {
 	var genre models.Genre
-	json.NewDecoder(r.Body).Decode(&genre)
-	genre.ID = nextGenreID
-	nextGenreID++
-	genres = append(genres, genre)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(genre)
+	if err := c.ShouldBindJSON(&genre); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	if genre.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name is required"})
+		return
+	}
+
+	result := db.Create(&genre)
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create genre"})
+		return
+	}
+	c.JSON(http.StatusCreated, genre)
 }

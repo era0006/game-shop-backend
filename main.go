@@ -2,48 +2,38 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"log"
 
+	"github.com/era0006/game-shop-backend/database"
 	"github.com/era0006/game-shop-backend/handlers"
+	"github.com/era0006/game-shop-backend/models"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	fmt.Println("🎮 Game Shop API starting on http://localhost:8080")
+	database.Connect()
 
-	http.HandleFunc("/games", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetGames(w, r)
-		case http.MethodPost:
-			handlers.CreateGame(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	handlers.SetDB(database.DB)
 
-	http.HandleFunc("/games/", handlers.GetGameByID)
+	err := database.DB.AutoMigrate(&models.Game{}, &models.Developer{}, &models.Genre{})
+	if err != nil {
+		log.Fatal("Migration failed:", err)
+	}
+	fmt.Println("Database migrated!")
 
-	http.HandleFunc("/developers", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetDevelopers(w, r)
-		case http.MethodPost:
-			handlers.CreateDeveloper(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	r := gin.Default()
 
-	http.HandleFunc("/genres", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handlers.GetGenres(w, r)
-		case http.MethodPost:
-			handlers.CreateGenre(w, r)
-		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+	r.GET("/games", handlers.GetGames)
+	r.POST("/games", handlers.CreateGame)
+	r.GET("/games/:id", handlers.GetGameByID)
+	r.PUT("/games/:id", handlers.UpdateGame)
+	r.DELETE("/games/:id", handlers.DeleteGame)
 
-	http.ListenAndServe(":8080", nil)
+	r.GET("/developers", handlers.GetDevelopers)
+	r.POST("/developers", handlers.CreateDeveloper)
+
+	r.GET("/genres", handlers.GetGenres)
+	r.POST("/genres", handlers.CreateGenre)
+
+	r.Run(":8080")
 }

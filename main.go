@@ -11,29 +11,45 @@ import (
 )
 
 func main() {
+	// Подключаемся к БД
 	database.Connect()
-
 	handlers.SetDB(database.DB)
 
-	err := database.DB.AutoMigrate(&models.Game{}, &models.Developer{}, &models.Genre{})
+	// Автоматическая миграция (создание таблиц)
+	err := database.DB.AutoMigrate(
+		&models.Game{},
+		&models.Developer{},
+		&models.Genre{},
+		&models.User{},
+	)
 	if err != nil {
 		log.Fatal("Migration failed:", err)
 	}
-	fmt.Println("Database migrated!")
+	fmt.Println("✅ Database migrated successfully!")
 
 	r := gin.Default()
 
+	// Публичные маршруты (не требуют токен)
 	r.GET("/games", handlers.GetGames)
-	r.POST("/games", handlers.CreateGame)
 	r.GET("/games/:id", handlers.GetGameByID)
-	r.PUT("/games/:id", handlers.UpdateGame)
-	r.DELETE("/games/:id", handlers.DeleteGame)
-
 	r.GET("/developers", handlers.GetDevelopers)
-	r.POST("/developers", handlers.CreateDeveloper)
-
 	r.GET("/genres", handlers.GetGenres)
-	r.POST("/genres", handlers.CreateGenre)
 
+	// Маршруты для авторизации
+	r.POST("/register", handlers.Register)
+	r.POST("/login", handlers.Login)
+
+	// Защищённые маршруты (требуют токен)
+	protected := r.Group("/")
+	protected.Use(handlers.AuthMiddleware())
+	{
+		protected.POST("/games", handlers.CreateGame)
+		protected.PUT("/games/:id", handlers.UpdateGame)
+		protected.DELETE("/games/:id", handlers.DeleteGame)
+		protected.POST("/developers", handlers.CreateDeveloper)
+		protected.POST("/genres", handlers.CreateGenre)
+	}
+
+	fmt.Println("🚀 Server starting on http://localhost:8080")
 	r.Run(":8080")
 }

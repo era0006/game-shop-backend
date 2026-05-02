@@ -18,7 +18,6 @@ func SendNotification(c *gin.Context) {
 		return
 	}
 
-	// ВНИМАНИЕ: в Docker используем имя сервиса "notification", а не localhost
 	resp, err := restyClient.R().
 		SetHeader("Content-Type", "application/json").
 		SetBody(map[string]string{"message": req.Message}).
